@@ -27,95 +27,119 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
 // Fonction pour servir la page HTML
 void handleRoot() {
   server.send(200, "text/html", R"rawliteral(
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Control Your Robot</title>
-        <style>
-            #camera-feed {
-                width: 100%;
-                height: 60vh;
-                background-color: black;
-            }
-            #joystick-left, #joystick-right {
-                width: 40%;
-                height: 200px;
-                position: absolute;
-                bottom: 10px;
-            }
-            #joystick-left {
-                left: 10px;
-            }
-            #joystick-right {
-                right: 10px;
-            }
-        </style>
-    </head>
-    <body>
-        <!-- Video Stream -->
-        <div id="camera-feed">
-            <img id="robot-stream" src="/stream" alt="Video Stream" />
-        </div>
+   <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control Your Robot</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            background-color: black;
+        }
+        
+        #camera-feed {
+            width: 100%;
+            height: 100vh; /* Utilise 100% de la hauteur de l'écran */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: black;
+        }
+        
+        #camera-feed img {
+            width: 100%;  /* L'image prendra 100% de la largeur disponible */
+            height: auto; /* L'image gardera son ratio d'aspect */
+            object-fit: cover; /* L'image s'ajustera pour couvrir la div */
+        }
+        
+        #joystick-container {
+            position: absolute;
+            bottom: 10px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 10px;
+        }
 
-        <!-- Joysticks -->
+        #joystick-left, #joystick-right {
+            width: 45%;
+            height: 200px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Video Stream -->
+      <div id="camera-feed">
+          <img id="robot-stream" src="/stream" alt="Video Stream" />
+      </div>
+
+    <!-- Joysticks -->
+    <div id="joystick-container">
         <div id="joystick-left"></div>
         <div id="joystick-right"></div>
+    </div>
 
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.7.3/nipplejs.min.js"></script>
-        <script>
-            // Joystick setup
-            const leftJoystick = nipplejs.create({
-                zone: document.getElementById('joystick-left'),
-                mode: 'static',
-                position: { left: '50px', bottom: '50px' },
-                color: 'blue'
-            });
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.7.3/nipplejs.min.js"></script>
+    <script>
+        // Joystick setup
+        const leftJoystick = nipplejs.create({
+            zone: document.getElementById('joystick-left'),
+            mode: 'static',
+            position: { left: '50px', bottom: '50px' },
+            color: 'blue'
+        });
 
-            const rightJoystick = nipplejs.create({
-                zone: document.getElementById('joystick-right'),
-                mode: 'static',
-                position: { right: '50px', bottom: '50px' },
-                color: 'red'
-            });
+        const rightJoystick = nipplejs.create({
+            zone: document.getElementById('joystick-right'),
+            mode: 'static',
+            position: { right: '50px', bottom: '50px' },
+            color: 'red'
+        });
 
-            // WebSocket connection
-            const ws = new WebSocket('ws://' + window.location.hostname + ':81');
+        // WebSocket connection to Laravel (replace with your WebSocket URL)
+        const ws = new WebSocket('ws://your-laravel-server/ws/control');
 
-            // Send movement commands from joystick data
-            leftJoystick.on('move', (evt, data) => {
-                const direction = data.direction ? data.direction.angle : null;
-                const distance = data.distance || 0;
-                const speed = Math.min(Math.round(distance * 2.55), 255);  // Map distance to speed (0-255)
-                
-                if (direction === 'up') {
-                    sendCommand('forward', speed);
-                } else if (direction === 'down') {
-                    sendCommand('backward', speed);
-                }
-            });
-
-            rightJoystick.on('move', (evt, data) => {
-                const direction = data.direction ? data.direction.angle : null;
-                const distance = data.distance || 0;
-                const speed = Math.min(Math.round(distance * 2.55), 255);
-
-                if (direction === 'left') {
-                    sendCommand('left', speed);
-                } else if (direction === 'right') {
-                    sendCommand('right', speed);
-                }
-            });
-
-            // Function to send commands via WebSocket
-            function sendCommand(direction, speed) {
-                const command = JSON.stringify({ direction, speed });
-                ws.send(command);
+        // Send movement commands from joystick data
+        leftJoystick.on('move', (evt, data) => {
+            const direction = data.direction ? data.direction.angle : null;
+            const distance = data.distance || 0;
+            const speed = Math.min(Math.round(distance * 2.55), 255);  // Map distance to speed (0-255)
+            
+            if (direction === 'up') {
+                sendCommand('forward', speed);
+            } else if (direction === 'down') {
+                sendCommand('backward', speed);
             }
-        </script>
-    </body>
-    </html>
+        });
+
+        rightJoystick.on('move', (evt, data) => {
+            const direction = data.direction ? data.direction.angle : null;
+            const distance = data.distance || 0;
+            const speed = Math.min(Math.round(distance * 2.55), 255);
+
+            if (direction === 'left') {
+                sendCommand('left', speed);
+            } else if (direction === 'right') {
+                sendCommand('right', speed);
+            }
+        });
+
+        // Function to send commands via WebSocket
+        function sendCommand(direction, speed) {
+            const command = JSON.stringify({ direction, speed });
+            ws.send(command);
+        }
+    </script>
+</body>
+</html>
   )rawliteral");
 }
 
